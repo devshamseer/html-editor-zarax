@@ -14,6 +14,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
+      flex-direction: column;
       height: 100vh;
       margin: 0;
     }
@@ -26,6 +27,9 @@
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       overflow: hidden;
       position: relative;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
     }
 
     #toolbar {
@@ -49,7 +53,8 @@
 
     .ql-container {
       border: none;
-      height: 300px;
+      flex-grow: 1;
+      overflow-y: auto;
     }
 
     .ql-editor {
@@ -57,6 +62,7 @@
       font-size: 16px;
       line-height: 1.6;
       color: #333;
+      min-height: 200px;
     }
 
     .ql-toolbar .ql-formats button:hover,
@@ -111,10 +117,56 @@
     #clear-button:hover {
       background-color: #c9302c;
     }
+
+    #save-button {
+      background-color: #28a745;
+    }
+
+    #save-button:hover {
+      background-color: #218838;
+    }
+
+    #saved-pages {
+      width: 80%;
+      max-width: 900px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    .saved-page {
+      background-color: #f4f4f4;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .saved-page-title {
+      cursor: pointer;
+      flex-grow: 1;
+    }
+
+    .delete-button {
+      background-color: #d9534f;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .delete-button:hover {
+      background-color: #c9302c;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0-dev.3/dist/quill.min.js"></script>
 </head>
 <body>
+  
   <div id="editor-container">
     <div id="toolbar">
       <div class="ql-formats">
@@ -154,9 +206,14 @@
       <button id="copy-html-button">Copy HTML</button>
       <button id="embed-button">Embed</button>
       <button id="clear-button">Clear</button>
+      <button id="save-button">Save</button>
     </div>
   </div>
 
+  <div id="saved-pages">
+    <h3>Saved Pages</h3>
+    <div id="saved-pages-list"></div>
+  </div>
   
   <script>
     // Initialize Quill editor with full toolbar
@@ -167,11 +224,19 @@
       }
     });
 
+    // Adjust the editor height dynamically based on content
+    function adjustEditorHeight() {
+      const editorElement = document.querySelector('.ql-editor');
+      editorElement.style.height = 'auto';
+      editorElement.style.height = `${editorElement.scrollHeight}px`;
+    }
+
+    quill.on('text-change', adjustEditorHeight);
+
     // Save content to local storage on text change
     quill.on('text-change', function() {
       const delta = quill.getContents(); // Gets Delta object (rich text)
       localStorage.setItem('quill-content', JSON.stringify(delta));
-      console.log(delta)
     });
 
     // Load content from local storage on page load
@@ -181,6 +246,9 @@
       if (savedContent) {
         quill.setContents(JSON.parse(savedContent));
       }
+
+      // Load saved pages
+      loadSavedPages();
     });
 
     // Clear editor content when clear button is clicked
@@ -191,12 +259,12 @@
 
     // Copy data to clipboard when copy-data button is clicked
     document.getElementById('copy-data-button').addEventListener('click', function() {
-      const delta = quill.getContents();
-      const deltaString = JSON.stringify(delta);
-      navigator.clipboard.writeText(deltaString).then(function() {
+      const delta = quill.getContents(); // Gets Delta object (rich text)
+      const text = JSON.stringify(delta);
+      navigator.clipboard.writeText(text).then(function() {
         alert('Data copied to clipboard');
       }, function(err) {
-        alert('Could not copy data: ', err);
+        alert('Could not copy data: ' + err);
       });
     });
 
@@ -206,11 +274,11 @@
       navigator.clipboard.writeText(html).then(function() {
         alert('HTML copied to clipboard');
       }, function(err) {
-        alert('Could not copy HTML: ', err);
+        alert('Could not copy HTML: ' + err);
       });
     });
 
-    // Embed editor's HTML and data when embed button is clicked
+    // Generate embed code when embed button is clicked
     document.getElementById('embed-button').addEventListener('click', function() {
       const html = quill.root.innerHTML;
       const delta = quill.getContents();
@@ -249,7 +317,7 @@
       if (url) {
         const embedUrl = `${url}embed/`;
         const range = quill.getSelection();
-        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}"></iframe>`);
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}" width="400" height="480" frameborder="0" scrolling="no" allowtransparency="true"></iframe>`);
       }
     });
 
@@ -258,7 +326,7 @@
       const url = prompt('Enter Twitter post URL:');
       if (url) {
         const range = quill.getSelection();
-        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}"></iframe>`);
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}" width="550" height="400" frameborder="0" scrolling="no" allowtransparency="true"></iframe>`);
       }
     });
 
@@ -268,8 +336,7 @@
       if (url) {
         const embedUrl = `${url}embed/`;
         const range = quill.getSelection();
-        
-        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}"></iframe>`);
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}" width="400" height="480" frameborder="0" scrolling="no" allowtransparency="true"></iframe>`);
       }
     });
 
@@ -278,9 +345,54 @@
       const url = prompt('Enter MP3 URL:');
       if (url) {
         const range = quill.getSelection();
-        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}" ></iframe>`);
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}" width="400" height="100" frameborder="0" scrolling="no" allowtransparency="true"></iframe>`);
       }
     });
+
+    // Save the current content and display it in the saved pages list
+    document.getElementById('save-button').addEventListener('click', function() {
+      const title = prompt('Enter a title for this page:');
+      if (title) {
+        const delta = quill.getContents();
+        const timestamp = new Date().toLocaleString();
+        const savedPages = JSON.parse(localStorage.getItem('saved-pages')) || [];
+        savedPages.push({ title, timestamp, content: delta });
+        localStorage.setItem('saved-pages', JSON.stringify(savedPages));
+        loadSavedPages();
+      }
+    });
+
+    // Load saved pages and display them
+    function loadSavedPages() {
+      const savedPages = JSON.parse(localStorage.getItem('saved-pages')) || [];
+      const savedPagesList = document.getElementById('saved-pages-list');
+      savedPagesList.innerHTML = '';
+      savedPages.forEach((page, index) => {
+        const div = document.createElement('div');
+        div.className = 'saved-page';
+        
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'saved-page-title';
+        titleSpan.innerText = `${page.title} - ${page.timestamp}`;
+        titleSpan.addEventListener('click', function() {
+          quill.setContents(page.content);
+        });
+
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'delete-button';
+        deleteButton.innerText = 'Delete';
+        deleteButton.addEventListener('click', function() {
+          savedPages.splice(index, 1);
+          localStorage.setItem('saved-pages', JSON.stringify(savedPages));
+          loadSavedPages();
+        });
+
+        div.appendChild(titleSpan);
+        div.appendChild(deleteButton);
+        savedPagesList.appendChild(div);
+      });
+    }
   </script>
 </body>
 </html>
+
