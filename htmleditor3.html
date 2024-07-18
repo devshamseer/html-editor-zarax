@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quill Editor Example</title>
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.0-dev.3/dist/quill.snow.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    /* Custom styling for the Quill editor */
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    #editor-container {
+      width: 80%;
+      max-width: 900px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #toolbar {
+      background-color: #000000;
+      color: #ffffff;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ql-toolbar .ql-formats button,
+    .ql-toolbar .ql-formats select {
+      color: #ffffff;
+    }
+
+    .ql-toolbar .ql-formats .ql-active,
+    .ql-toolbar .ql-formats .ql-active:hover {
+      background-color: #57577a;
+      color: #ffffff;
+    }
+
+    .ql-container {
+      border: none;
+      height: 300px;
+    }
+
+    .ql-editor {
+      padding: 20px;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    .ql-toolbar .ql-formats button:hover,
+    .ql-toolbar .ql-formats button:focus,
+    .ql-toolbar .ql-formats select:hover,
+    .ql-toolbar .ql-formats select:focus {
+      background-color: #57577a;
+      color: #ffffff;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ff0000;
+    }
+
+    .bottom-right-buttons {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .bottom-right-buttons button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+
+    .bottom-right-buttons button:hover {
+      background-color: #0056b3;
+    }
+
+    #clear-button {
+      background-color: #d9534f;
+    }
+
+    #clear-button:hover {
+      background-color: #c9302c;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0-dev.3/dist/quill.min.js"></script>
+</head>
+<body>
+  <div id="editor-container">
+    <div id="toolbar">
+      <div class="ql-formats">
+        <select class="ql-font"></select>
+        <select class="ql-size"></select>
+        <button class="ql-bold"></button>
+        <button class="ql-italic"></button>
+        <button class="ql-underline"></button>
+        <button class="ql-strike"></button>
+        <select class="ql-color"></select>
+        <select class="ql-background"></select>
+        <button class="ql-script" value="sub"></button>
+        <button class="ql-script" value="super"></button>
+        <button class="ql-header" value="1"></button>
+        <button class="ql-header" value="2"></button>
+        <button class="ql-blockquote"></button>
+        <button class="ql-list" value="ordered"></button>
+        <button class="ql-list" value="bullet"></button>
+        <button class="ql-indent" value="-1"></button>
+        <button class="ql-indent" value="+1"></button>
+        <button class="ql-direction" value="rtl"></button>
+        <button class="ql-link"></button>
+        <button class="ql-image"></button>
+        <button class="ql-video"></button>
+        <button class="ql-clean"></button>
+        <!-- Add media buttons -->
+        <button id="youtube-button"><i class="fa-brands fa-youtube" style="color: #ff0000;"></i></button> 
+        <button id="instagram-button"><i class="fa-brands fa-instagram"></i></button>
+        <button id="twitter-button"><i class="fa-brands fa-square-x-twitter"></i></button>
+        <button id="linkedin-button"><i class="fa-brands fa-linkedin"></i></button>
+        <button id="mp3-button"><i class="fas fa-music"></i></button>
+      </div>
+    </div>
+    <div id="editor"></div>
+    <div class="bottom-right-buttons">
+      <button id="copy-data-button">Copy Data</button>
+      <button id="copy-html-button">Copy HTML</button>
+      <button id="embed-button">Embed</button>
+      <button id="clear-button">Clear</button>
+    </div>
+  </div>
+
+  
+  <script>
+    // Initialize Quill editor with full toolbar
+    const quill = new Quill("#editor", {
+      theme: "snow",
+      modules: {
+        toolbar: "#toolbar"
+      }
+    });
+
+    // Save content to local storage on text change
+    quill.on('text-change', function() {
+      const delta = quill.getContents(); // Gets Delta object (rich text)
+      localStorage.setItem('quill-content', JSON.stringify(delta));
+      console.log(delta)
+    });
+
+    // Load content from local storage on page load
+    window.addEventListener('load', function() {
+      const savedContent = localStorage.getItem('quill-content');
+      
+      if (savedContent) {
+        quill.setContents(JSON.parse(savedContent));
+      }
+    });
+
+    // Clear editor content when clear button is clicked
+    document.getElementById('clear-button').addEventListener('click', function() {
+      quill.setContents([]); // Clear the editor
+      localStorage.removeItem('quill-content'); // Remove content from local storage
+    });
+
+    // Copy data to clipboard when copy-data button is clicked
+    document.getElementById('copy-data-button').addEventListener('click', function() {
+      const delta = quill.getContents();
+      const deltaString = JSON.stringify(delta);
+      navigator.clipboard.writeText(deltaString).then(function() {
+        alert('Data copied to clipboard');
+      }, function(err) {
+        alert('Could not copy data: ', err);
+      });
+    });
+
+    // Copy HTML to clipboard when copy-html button is clicked
+    document.getElementById('copy-html-button').addEventListener('click', function() {
+      const html = quill.root.innerHTML;
+      navigator.clipboard.writeText(html).then(function() {
+        alert('HTML copied to clipboard');
+      }, function(err) {
+        alert('Could not copy HTML: ', err);
+      });
+    });
+
+    // Embed editor's HTML and data when embed button is clicked
+    document.getElementById('embed-button').addEventListener('click', function() {
+      const html = quill.root.innerHTML;
+      const delta = quill.getContents();
+      const embedCode = `
+        <div id="embedded-editor" style="border: 1px solid #ccc; padding: 10px;">
+          ${html}
+        </div>
+        <script>
+          const embeddedEditor = new Quill("#embedded-editor", {
+            theme: "snow"
+          });
+          embeddedEditor.setContents(${JSON.stringify(delta)});
+        <\/script>
+      `;
+      navigator.clipboard.writeText(embedCode).then(function() {
+        alert('Embed code copied to clipboard');
+      }, function(err) {
+        alert('Could not copy embed code: ' + err);
+      });
+    });
+
+    // Add YouTube embed functionality
+    document.getElementById('youtube-button').addEventListener('click', function() {
+      const url = prompt('Enter YouTube video URL:');
+      if (url) {
+        const videoId = url.split('v=')[1];
+        const embedUrl = `${videoId}`;
+        const range = quill.getSelection();
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe width="560" height="315" src="https://www.youtube.com/embed/${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`);
+      }
+    });
+
+    // Add Instagram embed functionality
+    document.getElementById('instagram-button').addEventListener('click', function() {
+      const url = prompt('Enter Instagram post URL:');
+      if (url) {
+        const embedUrl = `${url}embed/`;
+        const range = quill.getSelection();
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}"></iframe>`);
+      }
+    });
+
+    // Add Twitter embed functionality
+    document.getElementById('twitter-button').addEventListener('click', function() {
+      const url = prompt('Enter Twitter post URL:');
+      if (url) {
+        const range = quill.getSelection();
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}"></iframe>`);
+      }
+    });
+
+    // Add LinkedIn embed functionality
+    document.getElementById('linkedin-button').addEventListener('click', function() {
+      const url = prompt('Enter LinkedIn post URL:');
+      if (url) {
+        const embedUrl = `${url}embed/`;
+        const range = quill.getSelection();
+        
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}"></iframe>`);
+      }
+    });
+
+    // Add MP3 embed functionality
+    document.getElementById('mp3-button').addEventListener('click', function() {
+      const url = prompt('Enter MP3 URL:');
+      if (url) {
+        const range = quill.getSelection();
+        quill.clipboard.dangerouslyPasteHTML(range.index, `<iframe src="${url}" ></iframe>`);
+      }
+    });
+  </script>
+</body>
+</html>
