@@ -6,6 +6,18 @@
   <title>Quill Editor Example</title>
   <link href="https://cdn.jsdelivr.net/npm/quill@2.0.0-dev.3/dist/quill.snow.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+ <!-- Prism CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+
+<!-- Prism JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+
+<!-- Prism Dart Language Plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-dart.min.js"></script>
+
+<!-- Prism VS Code Dark+ Theme CSS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/prism-vsc-dark-plus.min.css" rel="stylesheet">
+
   <style>
     /* Custom styling for the Quill editor */
     body {
@@ -162,8 +174,45 @@
     .delete-button:hover {
       background-color: #c9302c;
     }
+
+
+  .language-dart .token.comment,
+  .language-dart .token.prolog,
+  .language-dart .token.doctype,
+  .language-dart .token.cdata {
+    color: #6a9955; /* VS Code green comments */
+  }
+  
+  .language-dart .token.punctuation {
+    color: #d4d4d4; /* VS Code default punctuation color */
+  }
+  
+  .language-dart .token.selector,
+  .language-dart .token.property,
+  .language-dart .token.function {
+    color: #569cd6; /* VS Code function and property color */
+  }
+
+  .language-dart .token.string,
+  .language-dart .token.attr-value {
+    color: #ce9178; /* VS Code string color */
+  }
+
+  .language-dart .token.keyword {
+    color: #c586c0; /* VS Code keyword color */
+  }
+
+  .language-dart .token.variable,
+  .language-dart .token.operator {
+    color: #9cdcfe; /* VS Code variable and operator color */
+  }
+</style>
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/quill@2.0.0-dev.3/dist/quill.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.23.0/components/prism-dart.min.js"></script>
 </head>
 <body>
   
@@ -198,6 +247,8 @@
         <button id="twitter-button"><i class="fa-brands fa-square-x-twitter"></i></button>
         <button id="linkedin-button"><i class="fa-brands fa-linkedin"></i></button>
         <button id="mp3-button"><i class="fas fa-music"></i></button>
+        <button id="insert-dart-button"><i class="fa-solid fa-code"></i></button>
+
       </div>
     </div>
     <div id="editor"></div>
@@ -223,6 +274,32 @@
         toolbar: "#toolbar"
       }
     });
+
+ // Function to escape HTML
+ function escapeHtml(html) {
+            return html.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
+        }
+
+        // Event listener for button
+        document.getElementById('insert-dart-button').addEventListener('click', function() {
+            const code = prompt('Enter Dart code:');
+            if (code) {
+                const range = quill.getSelection();
+                const dartHtml = `<pre class="line-numbers"><code class="language-dart">${escapeHtml(code)}</code></pre>`;
+                quill.clipboard.dangerouslyPasteHTML(range.index, dartHtml);
+                
+                // Ensure Prism.js highlights the new code block
+                setTimeout(() => {
+                    Prism.highlightAll();
+                }, 0);
+            }
+        });
+
+
 
     // Adjust the editor height dynamically based on content
     function adjustEditorHeight() {
@@ -363,36 +440,82 @@
     });
 
     // Load saved pages and display them
-    function loadSavedPages() {
-      const savedPages = JSON.parse(localStorage.getItem('saved-pages')) || [];
-      const savedPagesList = document.getElementById('saved-pages-list');
-      savedPagesList.innerHTML = '';
-      savedPages.forEach((page, index) => {
-        const div = document.createElement('div');
-        div.className = 'saved-page';
-        
-        const titleSpan = document.createElement('span');
-        titleSpan.className = 'saved-page-title';
-        titleSpan.innerText = `${page.title} - ${page.timestamp}`;
-        titleSpan.addEventListener('click', function() {
-          quill.setContents(page.content);
-        });
+  // Load saved pages and display them
+function loadSavedPages() {
+  const savedPages = JSON.parse(localStorage.getItem('saved-pages')) || [];
+  const savedPagesList = document.getElementById('saved-pages-list');
+  savedPagesList.innerHTML = '';
+  savedPages.forEach((page, index) => {
+    const div = document.createElement('div');
+    div.className = 'saved-page';
+    
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'saved-page-title';
+    titleSpan.innerText = `${page.title} - ${page.timestamp}`;
+    titleSpan.addEventListener('click', function() {
+      quill.setContents(page.content);
+    });
 
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'delete-button';
-        deleteButton.innerText = 'Delete';
-        deleteButton.addEventListener('click', function() {
-          savedPages.splice(index, 1);
-          localStorage.setItem('saved-pages', JSON.stringify(savedPages));
-          loadSavedPages();
-        });
+    const viewButton = document.createElement('button');
+    viewButton.className = 'view-button';
+    viewButton.innerText = 'View HTML';
+    viewButton.addEventListener('click', function() {
 
-        div.appendChild(titleSpan);
-        div.appendChild(deleteButton);
-        savedPagesList.appendChild(div);
-      });
-    }
+  // Open a new window
+var newWindow = window.open();
+
+
+
+// Optional: Close the document stream to prevent further writing
+newWindow.document.close();
+
+    });
+
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'delete-button';
+    deleteButton.innerText = 'Delete';
+    deleteButton.addEventListener('click', function() {
+      savedPages.splice(index, 1);
+      localStorage.setItem('saved-pages', JSON.stringify(savedPages));
+      loadSavedPages();
+    });
+
+    div.appendChild(titleSpan);
+    div.appendChild(viewButton);
+    div.appendChild(deleteButton);
+    savedPagesList.appendChild(div);
+  });
+}
+
+// Function to open saved page content in a new tab
+function openHTMLTab(content) {
+ // const newTab = window.open();
+//  newTab.document.body.innerText = quill.root.innerHTML;
+
+
+
+const newTab = window.open();
+
+
+
+
+// newTab.document.write(); 
+newTab.document.body.innerText = JSON.stringify(content);
+//newTab.document.close();
+}
+
+function downloadPDF() {
+  const doc = new jsPDF();
+  const html = ``;
+  doc.html(html, {
+      callback: function (doc) {
+          doc.save('output.pdf');
+      },
+      x: 10,
+      y: 10
+  });
+}
+
   </script>
 </body>
 </html>
-
